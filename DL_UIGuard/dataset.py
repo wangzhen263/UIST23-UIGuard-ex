@@ -238,22 +238,26 @@ def load_dataset(f_in_img_text, f_out_proc_data, f_root):
     if not os.path.exists(f"{f_out_proc_data}"):
 #    if os.path.exists(f'{f_out_proc_data}'):
         class_threshold = 5 
-        class_img_bnd_text, img_all_texts, labels = prepare_dataset(f_in_img_text)
+        class_img_bnd_text, img_all_texts, _ = prepare_dataset(f_in_img_text)
 
         # label_num_data = {k: len(v) for k, v in class_img_bnd_text.items()}
         train_img_bnd_text = {}
         test_img_bnd_text = {}
         max_seq_length = 0
 
+        labels = []
         for label, img_bnd_texts in class_img_bnd_text.items():
             if len(img_bnd_texts) >= class_threshold:
                 # will do data augmentation 
                 n_sample = round(len(img_bnd_texts) * 0.8)
-            else:
+            elif len(img_bnd_texts) > 1:
                 n_sample = len(img_bnd_texts) - 1
+            else:
+                continue
 
             train_img_bnd_text[label] = img_bnd_texts[:n_sample]
             test_img_bnd_text[label] = img_bnd_texts[n_sample:]
+            labels.append(label)
 
         train_set, test_set = [], []
         for l, img_bnd_texts in train_img_bnd_text.items():

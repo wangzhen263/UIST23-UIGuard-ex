@@ -41,7 +41,7 @@ N_LAYERS = 50
 DEVICE = "cuda:1"
 MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT#"/data/scsgpu1/work/jeffwang/dark_pattern"
 
-USE_CLASS_WEIGHT = False #False or True
+USE_CLASS_WEIGHT = True #False or True
 USE_NEGATIVE_SAMPLE = False # False or True
 USE_OVER_SAMPLE = False # False or True
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     total_labels = list(set(total_labels))
     tatal_labels = sorted(total_labels)
     print(tatal_labels)
-    
+
     tokenizer = None
     f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt"
 
