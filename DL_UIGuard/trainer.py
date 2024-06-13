@@ -26,20 +26,23 @@ RICO_DATASET_DETECTION = f"{RICO_DATASET_ROOT}/detection"
 RICO_DATASET_IMG_TEXT = f"{RICO_DATASET_DETECTION}/text"
 RICO_DATASET_PROC_DATA = f"{RICO_DATASET_DETECTION}/proc_dataset.pk"
 
-OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling"
+#OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling"
+OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling_v2"
 OUR_DATASET_DETECTION = f"{OUR_DATASET_ROOT}/detection"
 OUR_DATASET_IMG_TEXT = f"{OUR_DATASET_DETECTION}/text"
 OUR_DATASET_PROC_DATA = f"{OUR_DATASET_DETECTION}/proc_dataset.pk"
+
+#/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling_v2/detection/all_text/
 
 N_EPOCH = 300
 N_BATCH = 32 #32
 N_LAYERS = 50
 #DEVICE = "cuda:0"
 DEVICE = "cuda:1"
-MODEL_OUTPUT_PREFIX = "/data/scsgpu1/work/jeffwang/dark_pattern"
+MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT#"/data/scsgpu1/work/jeffwang/dark_pattern"
 
-USE_CLASS_WEIGHT = True #False or True
-USE_NEGATIVE_SAMPLE = True # False or True
+USE_CLASS_WEIGHT = False #False or True
+USE_NEGATIVE_SAMPLE = False # False or True
 USE_OVER_SAMPLE = False # False or True
 
 date_str = datetime.datetime.now().strftime("%d-%m-%Y")
@@ -56,7 +59,8 @@ if __name__ == "__main__":
     total_labels = our_labels + [label_map[l] for l in rico_labels]
     total_labels = list(set(total_labels))
     tatal_labels = sorted(total_labels)
-
+    print(tatal_labels)
+    
     tokenizer = None
     f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt"
 
@@ -77,30 +81,6 @@ if __name__ == "__main__":
     cls_model = resnet_model
 
     # Model 2
-#    bert_resnet_model = Bert_ResNet(
-#        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
-#    )
-#    tokenizer = bert_resnet_model.tokenizer
-#    model_type = 'Bert_ResNet'
-
-
-    #####
-    # SETTING 1
-#    lr = 0.01
-#    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
-#    bert_resnet_model.freeze_encoders()
-
-    # SETTING 2
-#    lr = 2e-5
-#    f_checkpoint = f"{f_checkpoint}_{model_type}2_lr{lr}"
-
-    # extra
-#    bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
-#    cls_model = bert_resnet_model
-    #####
-
-
-    # Model 3
 #    bert_model = Bert_Classifier(n_class=len(tatal_labels))
 #    tokenizer = bert_model.tokenizer
 #    bert_model.to(DEVICE)
@@ -109,6 +89,39 @@ if __name__ == "__main__":
 #    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
 #    bert_model.load_state_dicts(f_checkpoint)
 #    cls_model = bert_model
+
+    # Model 3
+#    bert_resnet_model = Bert_ResNet(
+#        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
+#    )
+#    tokenizer = bert_resnet_model.tokenizer
+#    model_type = 'Bert_ResNet'
+#    r_lr = 0.003
+#    b_lr = 3e-5
+#    f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
+#    f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
+#    bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
+#
+#    #####
+#    # SETTING 1
+#    lr = 0.003 #0.005 #0.01
+#    f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
+#    try:
+#        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+#    except ValueError:
+#        pass
+#    bert_resnet_model.freeze_encoders()
+#    cls_model = bert_resnet_model
+
+    # SETTING 2
+#    lr = 3e-5
+#    f_checkpoint = f"{f_checkpoint}_{model_type}_nfr_lr{lr}"
+#    try:
+#        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+#    except ValueError:
+#        pass
+#    cls_model = bert_resnet_model
+    #####
 
     file_logger = get_global_logger(
         "DP_trainer", f"/data/scsgpu1/work/jeffwang/dark_pattern/log_{model_type}_{date_str}.out"
@@ -149,9 +162,9 @@ if __name__ == "__main__":
     file_logger.info(f"f_checkpoint: {f_checkpoint}")    
 
     test_accs, test_macs, test_mics = (
-        [0.4741],
-        [[0.5857, 0.4429, 0.478]],
-        [[0.4741, 0.4741, 0.4741]],
+        [0.1],
+        [[0.1, 0.1, 0.1]],
+        [[0.1, 0.1, 0.1]],
     )
     train_losses = []
     best_model = None
@@ -214,7 +227,7 @@ if __name__ == "__main__":
         if test_acc == max(test_accs):
             best_model = cls_model
             best_model.save_state_dicts(f_checkpoint)
-            file_logger.info(f"Confusion Matrix: {conf_mat}")
+            file_logger.info(f"Confusion Matrix: \n{conf_mat}")
             
             with open(f"{MODEL_OUTPUT_PREFIX}/err_msg.json", "w") as f:
                 json.dump(err_imgs, f)

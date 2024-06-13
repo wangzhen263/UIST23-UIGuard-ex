@@ -107,26 +107,22 @@ def get_global_logger(logger_name, logger_filename):
 
     return global_logger
 
-
-# def inference(model, data_loader, threshold=0.5):
 def inference(model, data_loader, device, loss_fn):
     model.eval()
     all_loss = 0.0
-    accuracy = []
+    sigmoid = torch.nn.Sigmoid()
 
-    pred_labels = []
-    gth_labels = []
+#    accuracy = []
 
+    data_idxs, pred_labels, gth_labels = [], [], []
     err_imgs = []
 
-    data_idxs = []
     with torch.no_grad():
         for images, labels, idxs in data_loader:
             images = [img.to(device) for img in images]
             labels = labels.to(device)
-            data_idxs.append(idxs)
+            data_idxs += idxs.cpu().tolist()
 
-            # output, xs = model(images)
             if isinstance(model, Bert_Classifier):
                 output = model(images, labels)
                 output = output["logits"]
@@ -139,32 +135,42 @@ def inference(model, data_loader, device, loss_fn):
                 output, xs = model(images, labels)
                 all_loss += loss_fn(xs, output, labels).item()
 
-            pred_labels += torch.argmax(output, dim=1).cpu().tolist()
-            gth_labels += torch.argmax(labels, dim=1).cpu().tolist()
+            output = sigmoid(output).cpu().numpy()
 
-            pred_label = torch.argmax(output, dim=1).cpu().tolist()
             gth_label = labels.cpu().numpy()
-            gth_label = [np.where(l==1)[0].tolist() for l in gth_label]
+            for i, l_gth in enumerate(gth_label):
+                w_gth = np.where(l_gth==1)[0].tolist()
+                y_bar = np.zeros(len(output[i]))
+                l_ybar = np.argsort(output[i])[-len(w_gth):]
+                for l in l_ybar:
+                    if output[i][l] > 0.5: y_bar[l] = 1
             
-            correct = 0
-            for i, (y_bar, y) in enumerate(zip(pred_label, gth_label)):
-                if y_bar in y:
-                    correct += 1
-                else:
-                    err_imgs.append([idxs[i].item(), y_bar])
+                gth_labels.append(l_gth)
+                pred_labels.append(y_bar)
 
-            correct = torch.tensor(correct / len(labels))
-            accuracy.append(correct)
+                w_pred = np.where(y_bar==1)[0].tolist()
+                for w in w_pred:
+                    if w not in w_gth:
+                        err_imgs.append([idxs[i].item(), y_bar.tolist(), l_gth.tolist()])
 
-            # pred_label = (output >= threshold).float()
-            # correct_per_batch = torch.sum(pred_label == labels, dim=1)
-            # num_labels = labels.size(1)
-            # accuracy_per_batch = correct_per_batch == num_labels
-            # accuracy_per_batch = torch.mean(accuracy_per_batch.float())
-            # accuracy.append(accuracy_per_batch)
+#            pred_label = torch.argmax(output, dim=1).cpu().tolist()
+#            gth_label = labels.cpu().numpy()
+#            gth_label = [np.where(l==1)[0].tolist() for l in gth_label]
+#            
+#            correct = 0
+#            for i, (y_bar, y) in enumerate(zip(pred_label, gth_label)):
+#                if y_bar in y:
+#                    correct += 1
+#                else:
+#                    err_imgs.append([idxs[i].item(), y_bar])
+#
+#            correct = torch.tensor(correct / len(labels))
+#            accuracy.append(correct)
 
     all_loss /= len(data_loader.dataset)
-    acc = (100.0 * torch.mean(torch.hstack(accuracy))).item()
+#    acc = (100.0 * torch.mean(torch.hstack(accuracy))).item()
+#    acc = accuracy(pred_labels, gth_labels, data_idxs) 
+    acc = accuracy_score(gth_labels, pred_labels)
 
     ma_p, ma_r, ma_f1, _ = precision_recall_fscore_support(
         gth_labels, pred_labels, average="macro", zero_division=np.nan
@@ -172,8 +178,7 @@ def inference(model, data_loader, device, loss_fn):
     mi_p, mi_r, mi_f1, _ = precision_recall_fscore_support(
         gth_labels, pred_labels, average="micro"
     )
-#    acc = accuracy_score(gth_labels, pred_labels)
-    conf_matrix = confusion_matrix(gth_labels, pred_labels)
+    conf_matrix = confusion_matrix([np.argmax(g) for g in gth_labels], [np.argmax(p) for p in pred_labels])
 
     return (
         acc,

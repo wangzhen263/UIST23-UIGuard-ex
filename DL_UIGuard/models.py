@@ -211,44 +211,43 @@ class Bert_ResNet(nn.Module):
             nn.Linear(64, n_class),
         )
 
-        # self.fc = nn.Linear(512 * 2 + 768, n_class)
+    def load_encoders(self, f_bert, f_resnet, device="cuda:0"):
+        f_bert = f"{f_bert}_bert_only.pt"
+        f_resnet = f"{f_resnet}_resnet_only.pt"
 
-    def load_state_dicts(self, f_ckpt, device="cuda:0"):
-        f_bert = f"{f_ckpt}_bert_part.pt"
-        f_resnet = f"{f_ckpt}_resnet_part.pt"
-        f_classifier = f"{f_ckpt}_fc_part.pt"
-
-        if os.path.exists(f_bert) and os.path.exists(f_resnet):
-            print("Loading pre-training weights!")
-
-            print("Loading bert weights ", f_bert)
+        if os.path.exists(f_bert):
             bert_state_dict = torch.load(f_bert, map_location=torch.device(device))
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
-
-            print("Loading resnet weights ", f_resnet)
+        else:
+            raise ValueError(f"{f_bert} checkpoint not existed.")
+            
+        if os.path.exists(f_resnet):
             resnet_state_dict = torch.load(f_resnet, map_location=torch.device(device))
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])
         else:
-            print(f_bert, f_resnet)
-            print("Encoder checkpoint not exists.")
-            exit(0)
+            raise ValueError(f"{f_resnet} checkpoint not existed.")
 
-    #        if os.path.exists(f_classifier):
-    #            cls_state_dict = torch.load(f_classifier, map_location=torch.device(device))
-    #            self.fc.load_state_dict(cls_state_dict['model_state_dict'])
+    def load_state_dicts(self, f_ckpt, device="cuda:0"):
+        f_ckpt = f"{f_ckpt}_bert_resnet.pt"
+        if os.path.exists(f_ckpt):
+            ckpt_state_dict = torch.load(f_ckpt, map_location=torch.device(device))
+            if "bert_encoder" in ckpt_state_dict:
+                self.text_classifier.load_state_dict(ckpt_state_dict["bert_encoder"])
+            if "resnet_encoder" in ckpt_state_dict:
+                self.resnet_cnn.load_state_dict(resnet_state_dict["resnet_encoder"])
+
+            self.fc.load_state_dict(ckpt_state_dict['model_state_dict'])
+        else:
+            print(f"ERROR: {f_ckpt} checkpoint not exists. No checkpoint loaded.")
 
     def save_state_dicts(self, f_ckpt):
-        if self.save_encoder:
-            torch.save(
-                {"model_state_dict": self.text_classifier.state_dict()},
-                f"{f_ckpt}_bert_part.pt",
-            )
-            torch.save(
-                {"model_state_dict": self.resnet_cnn.state_dict()},
-                f"{f_ckpt}_resnet_part.pt",
-            )
+        model_ckpt = {"model_state_dict": self.fc.state_dict()}
 
-        torch.save({"model_state_dict": self.fc.state_dict()}, f"{f_ckpt}_fc_part.pt")
+        if self.save_encoder:
+            model_ckpt["bert_encoder"] = self.text_classifier.state_dict()
+            model_ckpt["resnet_encoder"] = self.resnet_cnn.state_dict()
+
+        torch.save(model_ckpt, f"{f_ckpt}_bert_resnet.pt")
 
     def freeze_encoders(self, n_encoder="all"):
         if n_encoder in ["ResNet", "all"]:
@@ -296,12 +295,16 @@ class Bert_Classifier(nn.Module):
         if os.path.exists(f_model):
             bert_state_dict = torch.load(f_model)
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
+        else:
+            print(f"ERROR: {f_model} checkpoint not existed. No checkpoint loaded.")
 
     def save_state_dicts(self, f_bert):
-        print(f"{f_bert}_bert_only.pt")
+        f_bert = f"{f_bert}_bert_only.pt"
+        print(f_bert)
+
         torch.save(
             {"model_state_dict": self.text_classifier.state_dict()},
-            f"{f_bert}_bert_only.pt",
+            f_bert,
         )
 
     def forward(self, x, y):
@@ -344,22 +347,25 @@ class SiameseResNet(nn.Module):
         self.fc = nn.Linear(512 * 2, n_class)
 
     def save_state_dicts(self, f_resnet):
+        f_resnet = f"{f_resnet}_resnet_only.pt"
         torch.save(
             {
                 "model_state_dict": self.resnet_cnn.state_dict(),
                 "fc_state_dict": self.fc.state_dict(),
             },
-            f"{f_resnet}_resnet_only.pt",
-        )
+            f_resnet,
+        )  
 
     def load_state_dicts(self, f_resnet):
         f_resnet = f"{f_resnet}_resnet_only.pt"
         print('SiameseResNet load_state_dicts ', f_resnet)
+    
         if os.path.exists(f_resnet):
             resnet_state_dict = torch.load(f_resnet)
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])
-            #            self.resnet_cnn.load_state_dict(resnet_state_dict['resnet_state_dict'])
             self.fc.load_state_dict(resnet_state_dict["fc_state_dict"])
+        else:
+            print(f"ERROR: {f_resnet} checkpoint not existed. No checkpoint loaded.")
 
     def forward(self, x, y):
         sub_img, full_img = x

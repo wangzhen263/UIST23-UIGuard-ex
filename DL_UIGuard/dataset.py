@@ -21,7 +21,7 @@ import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 
 from utils import *
-
+        
 
 class CustomDataset(Dataset):
     def __init__(
@@ -58,7 +58,7 @@ class CustomDataset(Dataset):
             [
                 naw.RandomWordAug("delete"),
                 naw.RandomWordAug("swap"),
-                nas.RandomSentAug()    
+                nas.RandomSentAug()
             ]
         )
 
@@ -177,6 +177,16 @@ def prepare_dataset(path_img_text):
                 
                 if len(labels) > 1:
                     print("## LABELS: ", labels)
+                
+                _labels = []
+                for l in labels:
+                    if l == "II-HiddenInformation-TEXT":
+                        _labels.append("II-HiddenInformation")
+                    elif l == "II-HiddenInformation-ICON":
+                        continue
+                    else:
+                        _labels.append(l)
+                labels = _labels
         
                 for l in labels:
                     if l not in class_img_bnd_text:
@@ -223,8 +233,11 @@ def prepare_dataset(path_img_text):
 
 
 def load_dataset(f_in_img_text, f_out_proc_data, f_root):
+    f_root = f"{f_root}/jeff_images_w_ori_path"
+
     if not os.path.exists(f"{f_out_proc_data}"):
 #    if os.path.exists(f'{f_out_proc_data}'):
+        class_threshold = 5 
         class_img_bnd_text, img_all_texts, labels = prepare_dataset(f_in_img_text)
 
         # label_num_data = {k: len(v) for k, v in class_img_bnd_text.items()}
@@ -233,14 +246,14 @@ def load_dataset(f_in_img_text, f_out_proc_data, f_root):
         max_seq_length = 0
 
         for label, img_bnd_texts in class_img_bnd_text.items():
-            if len(img_bnd_texts) > 20:
+            if len(img_bnd_texts) >= class_threshold:
+                # will do data augmentation 
                 n_sample = round(len(img_bnd_texts) * 0.8)
-                train_img_bnd_text[label] = img_bnd_texts[:n_sample]
-                test_img_bnd_text[label] = img_bnd_texts[n_sample:]
             else:
-                n_sample = len(img_bnd_texts)
-                train_img_bnd_text[label] = img_bnd_texts
-                test_img_bnd_text[label] = img_bnd_texts
+                n_sample = len(img_bnd_texts) - 1
+
+            train_img_bnd_text[label] = img_bnd_texts[:n_sample]
+            test_img_bnd_text[label] = img_bnd_texts[n_sample:]
 
         train_set, test_set = [], []
         for l, img_bnd_texts in train_img_bnd_text.items():
