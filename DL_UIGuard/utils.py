@@ -31,7 +31,25 @@ label_map = {
     "SN-FC": "Sneaking-ForcedContinuity",
 }
 
-['ForcedAction-Gamification', 'ForcedAction-General', 'ForcedAction-Privacy', 'ForcedAction-SocialPyramid', 'II-AM-DisguisedAD', 'II-AM-FalseHierarchy-BAD', 'II-AM-General', 'II-AM-ToyingWithEmotion', 'II-AM-Tricked', 'II-HiddenInformation', 'II-Preselection', 'Nagging', 'Obstruction-Currency', 'Obstruction-RoachMotel', 'Sneaking-BaitAndSwitch', 'Sneaking-ForcedContinuity', 'Sneaking-HiddenCosts']
+[
+    "ForcedAction-Gamification",
+    "ForcedAction-General",
+    "ForcedAction-Privacy",
+    "ForcedAction-SocialPyramid",
+    "II-AM-DisguisedAD",
+    "II-AM-FalseHierarchy-BAD",
+    "II-AM-General",
+    "II-AM-ToyingWithEmotion",
+    "II-AM-Tricked",
+    "II-HiddenInformation",
+    "II-Preselection",
+    "Nagging",
+    "Obstruction-Currency",
+    "Obstruction-RoachMotel",
+    "Sneaking-BaitAndSwitch",
+    "Sneaking-ForcedContinuity",
+    "Sneaking-HiddenCosts",
+]
 
 
 class StreamToLogger(object):
@@ -107,15 +125,17 @@ def get_global_logger(logger_name, logger_filename):
 
     return global_logger
 
+
 def inference(model, data_loader, device, loss_fn):
     model.eval()
     all_loss = 0.0
     sigmoid = torch.nn.Sigmoid()
 
-#    accuracy = []
+    #    accuracy = []
 
     data_idxs, pred_labels, gth_labels = [], [], []
     err_imgs = []
+    pred_floats = []
 
     with torch.no_grad():
         for images, labels, idxs in data_loader:
@@ -139,37 +159,43 @@ def inference(model, data_loader, device, loss_fn):
 
             gth_label = labels.cpu().numpy()
             for i, l_gth in enumerate(gth_label):
-                w_gth = np.where(l_gth==1)[0].tolist()
+                w_gth = np.where(l_gth == 1)[0].tolist()
                 y_bar = np.zeros(len(output[i]))
-                l_ybar = np.argsort(output[i])[-len(w_gth):]
+                l_ybar = np.argsort(output[i])[-len(w_gth) :]
                 for l in l_ybar:
-                    if output[i][l] > 0.5: y_bar[l] = 1
-            
+                    if output[i][l] > 0.5:
+                        y_bar[l] = 1
+
                 gth_labels.append(l_gth)
                 pred_labels.append(y_bar)
 
-                w_pred = np.where(y_bar==1)[0].tolist()
+                w_pred = np.where(y_bar == 1)[0].tolist()
                 for w in w_pred:
                     if w not in w_gth:
-                        err_imgs.append([idxs[i].item(), y_bar.tolist(), l_gth.tolist()])
+                        err_imgs.append(
+                            [idxs[i].item(), y_bar.tolist(), l_gth.tolist()]
+                        )
 
-#            pred_label = torch.argmax(output, dim=1).cpu().tolist()
-#            gth_label = labels.cpu().numpy()
-#            gth_label = [np.where(l==1)[0].tolist() for l in gth_label]
-#            
-#            correct = 0
-#            for i, (y_bar, y) in enumerate(zip(pred_label, gth_label)):
-#                if y_bar in y:
-#                    correct += 1
-#                else:
-#                    err_imgs.append([idxs[i].item(), y_bar])
-#
-#            correct = torch.tensor(correct / len(labels))
-#            accuracy.append(correct)
+                output[i][output[i] <= 0.5] = 0
+                pred_floats.append(output[i])
+
+    #            pred_label = torch.argmax(output, dim=1).cpu().tolist()
+    #            gth_label = labels.cpu().numpy()
+    #            gth_label = [np.where(l==1)[0].tolist() for l in gth_label]
+    #
+    #            correct = 0
+    #            for i, (y_bar, y) in enumerate(zip(pred_label, gth_label)):
+    #                if y_bar in y:
+    #                    correct += 1
+    #                else:
+    #                    err_imgs.append([idxs[i].item(), y_bar])
+    #
+    #            correct = torch.tensor(correct / len(labels))
+    #            accuracy.append(correct)
 
     all_loss /= len(data_loader.dataset)
-#    acc = (100.0 * torch.mean(torch.hstack(accuracy))).item()
-#    acc = accuracy(pred_labels, gth_labels, data_idxs) 
+    #    acc = (100.0 * torch.mean(torch.hstack(accuracy))).item()
+    #    acc = accuracy(pred_labels, gth_labels, data_idxs)
     acc = accuracy_score(gth_labels, pred_labels)
 
     ma_p, ma_r, ma_f1, _ = precision_recall_fscore_support(
@@ -178,7 +204,9 @@ def inference(model, data_loader, device, loss_fn):
     mi_p, mi_r, mi_f1, _ = precision_recall_fscore_support(
         gth_labels, pred_labels, average="micro"
     )
-    conf_matrix = confusion_matrix([np.argmax(g) for g in gth_labels], [np.argmax(p) for p in pred_labels])
+    conf_matrix = confusion_matrix(
+        [np.argmax(g) for g in gth_labels], [np.argmax(p) for p in pred_labels]
+    )
 
     return (
         acc,
@@ -186,7 +214,8 @@ def inference(model, data_loader, device, loss_fn):
         [round(ma_p, 4), round(ma_r, 4), round(ma_f1, 4)],
         [round(mi_p, 4), round(mi_r, 4), round(mi_f1, 4)],
         conf_matrix,
-        err_imgs
+        err_imgs,
+        pred_floats,
     )
 
 

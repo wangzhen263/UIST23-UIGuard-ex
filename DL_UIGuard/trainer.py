@@ -26,24 +26,25 @@ RICO_DATASET_DETECTION = f"{RICO_DATASET_ROOT}/detection"
 RICO_DATASET_IMG_TEXT = f"{RICO_DATASET_DETECTION}/text"
 RICO_DATASET_PROC_DATA = f"{RICO_DATASET_DETECTION}/proc_dataset.pk"
 
-#OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling"
+# OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling"
 OUR_DATASET_ROOT = "/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling_v2"
 OUR_DATASET_DETECTION = f"{OUR_DATASET_ROOT}/detection"
 OUR_DATASET_IMG_TEXT = f"{OUR_DATASET_DETECTION}/text"
 OUR_DATASET_PROC_DATA = f"{OUR_DATASET_DETECTION}/proc_dataset.pk"
+OUR_DATASET_PROC_DATA_APP = f"{OUR_DATASET_DETECTION}/proc_dataset_app.pk"
 
-#/data/scsgpu1/work/jeffwang/dark_pattern/our_labelling_v2/detection/all_text/
+# /data/scsgpu1/work/jeffwang/dark_pattern/our_labelling_v2/detection/all_text/
 
 N_EPOCH = 300
-N_BATCH = 32 #32
+N_BATCH = 32  # 32
 N_LAYERS = 50
-#DEVICE = "cuda:0"
+# DEVICE = "cuda:0"
 DEVICE = "cuda:1"
-MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT#"/data/scsgpu1/work/jeffwang/dark_pattern"
+MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT  # "/data/scsgpu1/work/jeffwang/dark_pattern"
 
-USE_CLASS_WEIGHT = True #False or True
-USE_NEGATIVE_SAMPLE = False # False or True
-USE_OVER_SAMPLE = False # False or True
+USE_CLASS_WEIGHT = True  # False or True
+USE_NEGATIVE_SAMPLE = True  # False or True
+USE_OVER_SAMPLE = True  # False or True
 
 date_str = datetime.datetime.now().strftime("%d-%m-%Y")
 
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     print(tatal_labels)
 
     tokenizer = None
-    f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt"
+    f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt_2"
 
     if USE_CLASS_WEIGHT:
         f_checkpoint = f"{f_checkpoint}_cw"
@@ -72,71 +73,88 @@ if __name__ == "__main__":
         f_checkpoint = f"{f_checkpoint}_os"
 
     # Model 1
-    resnet_model = SiameseResNet(n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS)
+    resnet_model = SiameseResNet(
+        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
+    )
     resnet_model.to(DEVICE)
     lr = 0.003
-    model_type = 'SiameseResNet'
+    model_type = "SiameseResNet"
     f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
     resnet_model.load_state_dicts(f_checkpoint)
     cls_model = resnet_model
 
     # Model 2
-#    bert_model = Bert_Classifier(n_class=len(tatal_labels))
-#    tokenizer = bert_model.tokenizer
-#    bert_model.to(DEVICE)
-#    lr = 3e-5
-#    model_type = 'Bert_Classifier'
-#    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
-#    bert_model.load_state_dicts(f_checkpoint)
-#    cls_model = bert_model
+    #    bert_model = Bert_Classifier(n_class=len(tatal_labels))
+    #    tokenizer = bert_model.tokenizer
+    #    bert_model.to(DEVICE)
+    #    lr = 3e-5
+    #    model_type = 'Bert_Classifier'
+    #    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
+    #    bert_model.load_state_dicts(f_checkpoint)
+    #    cls_model = bert_model
 
     # Model 3
-#    bert_resnet_model = Bert_ResNet(
-#        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
-#    )
-#    tokenizer = bert_resnet_model.tokenizer
-#    model_type = 'Bert_ResNet'
-#    r_lr = 0.003
-#    b_lr = 3e-5
-#    f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
-#    f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
-#    bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
-#
-#    #####
-#    # SETTING 1
-#    lr = 0.003 #0.005 #0.01
-#    f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
-#    try:
-#        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
-#    except ValueError:
-#        pass
-#    bert_resnet_model.freeze_encoders()
-#    cls_model = bert_resnet_model
+    #    bert_resnet_model = Bert_ResNet(
+    #        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
+    #    )
+    #    tokenizer = bert_resnet_model.tokenizer
+    #    model_type = 'Bert_ResNet'
+    #    r_lr = 0.003
+    #    b_lr = 3e-5
+    #    f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
+    #    f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
+    #    bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
+    #
+    #    #####
+    #    # SETTING 1
+    #    lr = 0.01 #0.005 #0.01
+    #    f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
+    #    try:
+    #        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+    #    except ValueError:
+    #        pass
+    #    bert_resnet_model.freeze_encoders()
+    #    cls_model = bert_resnet_model
 
     # SETTING 2
-#    lr = 3e-5
-#    f_checkpoint = f"{f_checkpoint}_{model_type}_nfr_lr{lr}"
-#    try:
-#        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
-#    except ValueError:
-#        pass
-#    cls_model = bert_resnet_model
+    #    lr = 3e-5
+    #    f_checkpoint = f"{f_checkpoint}_{model_type}_nfr_lr{lr}"
+    #    try:
+    #        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+    #    except ValueError:
+    #        pass
+    #    cls_model = bert_resnet_model
     #####
 
     file_logger = get_global_logger(
-        "DP_trainer", f"/data/scsgpu1/work/jeffwang/dark_pattern/log_{model_type}_{date_str}.out"
+        "DP_trainer",
+        f"/data/scsgpu1/work/jeffwang/dark_pattern/log_{model_type}_{date_str}.out",
     )
 
     cls_model.to(DEVICE)
 
-#    optimizer = torch.optim.AdamW(cls_model.parameters(), lr=lr, eps=1e-8)  # 0.01 0.001
+    #    optimizer = torch.optim.AdamW(cls_model.parameters(), lr=lr, eps=1e-8)  # 0.01 0.001
 
-    no_decay = ['bias', 'LayerNorm.weight']
+    no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
-          {'params': [p for n, p in cls_model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-          {'params': [p for n, p in cls_model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        {
+            "params": [
+                p
+                for n, p in cls_model.named_parameters()
+                if not any(nd in n for nd in no_decay)
+            ],
+            "weight_decay": 0.01,
+        },
+        {
+            "params": [
+                p
+                for n, p in cls_model.named_parameters()
+                if any(nd in n for nd in no_decay)
+            ],
+            "weight_decay": 0.0,
+        },
     ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=lr, eps = 1e-8)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=lr, eps=1e-8)
 
     #    if os.path.exists(f_checkpoint):
     #        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -152,14 +170,12 @@ if __name__ == "__main__":
     train_dataset = CustomDataset(
         all_train_set, tokenizer, max_seq_length, over_sample=USE_OVER_SAMPLE
     )
-    test_dataset = CustomDataset(
-        all_test_set, tokenizer, max_seq_length
-    )
+    test_dataset = CustomDataset(all_test_set, tokenizer, max_seq_length)
 
     train_dataloader = DataLoader(train_dataset, batch_size=N_BATCH, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=N_BATCH, shuffle=False)
 
-    file_logger.info(f"f_checkpoint: {f_checkpoint}")    
+    file_logger.info(f"f_checkpoint: {f_checkpoint}")
 
     test_accs, test_macs, test_mics = (
         [0.1],
@@ -202,12 +218,14 @@ if __name__ == "__main__":
             # print(f'Batch {batch_idx} Loss: {loss}')
 
         train_losses.append(train_loss / len(train_dataloader))
-        train_acc, _, _, _, _, _ = inference(cls_model, train_dataloader, DEVICE, loss_fn)
+        train_acc, _, _, _, _, _, _ = inference(
+            cls_model, train_dataloader, DEVICE, loss_fn
+        )
         file_logger.info(
             f"Epoch {epoch}, Train Loss: {train_loss/len(train_dataloader)}, Train acc: {round(train_acc, 4)}"
         )
 
-        test_acc, test_loss, mac, mic, conf_mat, err_imgs = inference(
+        test_acc, test_loss, mac, mic, conf_mat, err_imgs, pred_floats = inference(
             cls_model, test_dataloader, DEVICE, loss_fn
         )
 
@@ -228,7 +246,8 @@ if __name__ == "__main__":
             best_model = cls_model
             best_model.save_state_dicts(f_checkpoint)
             file_logger.info(f"Confusion Matrix: \n{conf_mat}")
-            
+
             with open(f"{MODEL_OUTPUT_PREFIX}/err_msg.json", "w") as f:
                 json.dump(err_imgs, f)
-            
+            with open(f"{MODEL_OUTPUT_PREFIX}/pred_floats.pk", "wb") as f:
+                pk.dump(pred_floats, f)

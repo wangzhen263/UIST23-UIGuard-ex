@@ -200,9 +200,7 @@ class Bert_ResNet(nn.Module):
         self.save_encoder = True
 
         self.resnet_cnn = ResNet(
-            num_channels=n_channels,
-            num_layers=n_layers,
-            ResBlock=Bottleneck,
+            num_channels=n_channels, num_layers=n_layers, ResBlock=Bottleneck,
         )
 
         self.fc = nn.Sequential(
@@ -216,12 +214,14 @@ class Bert_ResNet(nn.Module):
         f_resnet = f"{f_resnet}_resnet_only.pt"
 
         if os.path.exists(f_bert):
+            print("## load_encoders ", f_bert)
             bert_state_dict = torch.load(f_bert, map_location=torch.device(device))
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
         else:
             raise ValueError(f"{f_bert} checkpoint not existed.")
-            
+
         if os.path.exists(f_resnet):
+            print("## load_encoders ", f_resnet)
             resnet_state_dict = torch.load(f_resnet, map_location=torch.device(device))
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])
         else:
@@ -236,7 +236,7 @@ class Bert_ResNet(nn.Module):
             if "resnet_encoder" in ckpt_state_dict:
                 self.resnet_cnn.load_state_dict(resnet_state_dict["resnet_encoder"])
 
-            self.fc.load_state_dict(ckpt_state_dict['model_state_dict'])
+            self.fc.load_state_dict(ckpt_state_dict["model_state_dict"])
         else:
             print(f"ERROR: {f_ckpt} checkpoint not exists. No checkpoint loaded.")
 
@@ -303,8 +303,7 @@ class Bert_Classifier(nn.Module):
         print(f_bert)
 
         torch.save(
-            {"model_state_dict": self.text_classifier.state_dict()},
-            f_bert,
+            {"model_state_dict": self.text_classifier.state_dict()}, f_bert,
         )
 
     def forward(self, x, y):
@@ -340,9 +339,7 @@ class SiameseResNet(nn.Module):
         super(SiameseResNet, self).__init__()
 
         self.resnet_cnn = ResNet(
-            num_channels=n_channels,
-            num_layers=n_layers,
-            ResBlock=Bottleneck,
+            num_channels=n_channels, num_layers=n_layers, ResBlock=Bottleneck,
         )
         self.fc = nn.Linear(512 * 2, n_class)
 
@@ -354,12 +351,12 @@ class SiameseResNet(nn.Module):
                 "fc_state_dict": self.fc.state_dict(),
             },
             f_resnet,
-        )  
+        )
 
     def load_state_dicts(self, f_resnet):
         f_resnet = f"{f_resnet}_resnet_only.pt"
-        print('SiameseResNet load_state_dicts ', f_resnet)
-    
+        print("SiameseResNet load_state_dicts ", f_resnet)
+
         if os.path.exists(f_resnet):
             resnet_state_dict = torch.load(f_resnet)
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])

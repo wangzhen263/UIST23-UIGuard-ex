@@ -21,15 +21,11 @@ import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 
 from utils import *
-        
+
 
 class CustomDataset(Dataset):
     def __init__(
-        self,
-        data_set,
-        tokenizer=None,
-        max_seq_length=0,
-        over_sample=False,
+        self, data_set, tokenizer=None, max_seq_length=0, over_sample=False,
     ):
         self.transform_subimg = transforms.Compose(
             [
@@ -37,7 +33,7 @@ class CustomDataset(Dataset):
                 transforms.Resize((133, 100), antialias=False),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
-#                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                #                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 transforms.Normalize((0.5,), (0.5,)),
             ]
         )
@@ -45,11 +41,11 @@ class CustomDataset(Dataset):
         self.transform_fullimg = transforms.Compose(
             [
                 transforms.ToTensor(),
-#                transforms.RandomCrop((640, 480)),
+                #                transforms.RandomCrop((640, 480)),
                 transforms.Resize((640, 480), antialias=False),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
-#                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                #                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                 transforms.Normalize((0.5,), (0.5,)),
             ]
         )
@@ -58,7 +54,7 @@ class CustomDataset(Dataset):
             [
                 naw.RandomWordAug("delete"),
                 naw.RandomWordAug("swap"),
-                nas.RandomSentAug()
+                nas.RandomSentAug(),
             ]
         )
 
@@ -67,7 +63,7 @@ class CustomDataset(Dataset):
         self.max_seq_length = max_seq_length
 
         labels = [np.argmax(ds[4]) for ds in data_set]
-        labels_counts = Counter(labels) 
+        labels_counts = Counter(labels)
         max_count = max(labels_counts.values())
 
         self.sub_imgs, self.full_imgs = [], []
@@ -77,14 +73,14 @@ class CustomDataset(Dataset):
         for ds in data_set:
             img_id, sub_img, f_full_img, text, one_hot_label = ds
             full_img_cv_ = cv2.imread(f_full_img)
-            
+
             if over_sample:
                 l_count = labels_counts[np.argmax(one_hot_label)]
-                n_loop = max(1, round( (max_count - l_count) / l_count ))
+                n_loop = max(1, round((max_count - l_count) / l_count))
             else:
                 n_loop = 1
-            
-            while (n_loop > 0):
+
+            while n_loop > 0:
                 self.sub_imgs.append(self.transform_subimg(sub_img))
 
                 try:
@@ -106,20 +102,22 @@ class CustomDataset(Dataset):
                         return_attention_mask=True,
                     )
                     self.token_rets.append(token_ret)
-                
+
                 self.one_hot_labels.append(one_hot_label)
                 n_loop -= 1
-    
+
         if over_sample:
             labels = [np.argmax(l) for l in self.one_hot_labels]
 
-        self.class_weight = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
+        self.class_weight = compute_class_weight(
+            class_weight="balanced", classes=np.unique(labels), y=labels
+        )
 
         assert len(self.one_hot_labels) == len(self.sub_imgs)
         assert len(self.sub_imgs) == len(self.full_imgs)
         if self.tokenizer is not None:
             assert len(self.one_hot_labels) == len(self.sub_imgs)
-    
+
     def class_weight(self):
         return self.class_weight
 
@@ -174,10 +172,10 @@ def prepare_dataset(path_img_text):
 
             for gth in img_bnd_texts:
                 bnd, text, labels = gth
-                
+
                 if len(labels) > 1:
                     print("## LABELS: ", labels)
-                
+
                 _labels = []
                 for l in labels:
                     if l == "II-HiddenInformation-TEXT":
@@ -187,7 +185,7 @@ def prepare_dataset(path_img_text):
                     else:
                         _labels.append(l)
                 labels = _labels
-        
+
                 for l in labels:
                     if l not in class_img_bnd_text:
                         class_img_bnd_text[l] = [[img_id, bnd, text, labels]]
@@ -232,12 +230,12 @@ def prepare_dataset(path_img_text):
     return class_img_bnd_text, img_all_texts, labels
 
 
-def load_dataset(f_in_img_text, f_out_proc_data, f_root):
+def load_dataset_pre_class(f_in_img_text, f_out_proc_data, f_root):
     f_root = f"{f_root}/jeff_images_w_ori_path"
 
     if not os.path.exists(f"{f_out_proc_data}"):
-#    if os.path.exists(f'{f_out_proc_data}'):
-        class_threshold = 5 
+        #    if os.path.exists(f'{f_out_proc_data}'):
+        class_threshold = 5
         class_img_bnd_text, img_all_texts, _ = prepare_dataset(f_in_img_text)
 
         # label_num_data = {k: len(v) for k, v in class_img_bnd_text.items()}
@@ -248,7 +246,7 @@ def load_dataset(f_in_img_text, f_out_proc_data, f_root):
         labels = []
         for label, img_bnd_texts in class_img_bnd_text.items():
             if len(img_bnd_texts) >= class_threshold:
-                # will do data augmentation 
+                # will do data augmentation
                 n_sample = round(len(img_bnd_texts) * 0.8)
             elif len(img_bnd_texts) > 1:
                 n_sample = len(img_bnd_texts) - 1
@@ -305,6 +303,17 @@ def load_dataset(f_in_img_text, f_out_proc_data, f_root):
             train_set, test_set, labels, max_seq_length = pk.load(f)
 
     return train_set, test_set, labels, max_seq_length
+
+
+def load_dataset_pre_app(f_in_img_text, f_out_proc_data, f_root):
+    pass
+
+
+def load_dataset(f_in_img_text, f_out_proc_data, f_root):
+    if "proc_dataset_app" not in f_out_proc_data:
+        return load_dataset_pre_class(f_in_img_text, f_out_proc_data, f_root)
+    else:
+        return load_dataset_pre_app(f_in_img_text, f_out_proc_data, f_root)
 
 
 def get_sub_image(sub_img_bnd, img_path):
