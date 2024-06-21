@@ -290,10 +290,10 @@ class Bert_Classifier(nn.Module):
             self.bert_name, num_labels=n_class
         )
 
-    def load_state_dicts(self, f_model):
+    def load_state_dicts(self, f_model, device='cuda:0'):
         f_model = f"{f_model}_bert_only.pt"
         if os.path.exists(f_model):
-            bert_state_dict = torch.load(f_model)
+            bert_state_dict = torch.load(f_model, map_location=torch.device(device))
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
         else:
             print(f"ERROR: {f_model} checkpoint not existed. No checkpoint loaded.")
@@ -353,12 +353,12 @@ class SiameseResNet(nn.Module):
             f_resnet,
         )
 
-    def load_state_dicts(self, f_resnet):
+    def load_state_dicts(self, f_resnet, device='cuda:0'):
         f_resnet = f"{f_resnet}_resnet_only.pt"
         print("SiameseResNet load_state_dicts ", f_resnet)
 
         if os.path.exists(f_resnet):
-            resnet_state_dict = torch.load(f_resnet)
+            resnet_state_dict = torch.load(f_resnet, map_location=torch.device(device))
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])
             self.fc.load_state_dict(resnet_state_dict["fc_state_dict"])
         else:
