@@ -212,9 +212,6 @@ class Bert_ResNet(nn.Module):
         )
 
     def load_encoders(self, f_bert, f_resnet, device="cuda:0"):
-        f_bert = f"{f_bert}_bert_only.pt"
-        f_resnet = f"{f_resnet}_resnet_only.pt"
-
         if os.path.exists(f_bert):
             print("## load_encoders ", f_bert)
             bert_state_dict = torch.load(f_bert, map_location=torch.device(device))
@@ -230,7 +227,6 @@ class Bert_ResNet(nn.Module):
             raise ValueError(f"{f_resnet} checkpoint not existed.")
 
     def load_state_dicts(self, f_ckpt, device="cuda:0"):
-        f_ckpt = f"{f_ckpt}_bert_resnet.pt"
         if os.path.exists(f_ckpt):
             ckpt_state_dict = torch.load(f_ckpt, map_location=torch.device(device))
             if "bert_encoder" in ckpt_state_dict:
@@ -249,7 +245,7 @@ class Bert_ResNet(nn.Module):
             model_ckpt["bert_encoder"] = self.text_classifier.state_dict()
             model_ckpt["resnet_encoder"] = self.resnet_cnn.state_dict()
 
-        torch.save(model_ckpt, f"{f_ckpt}_bert_resnet.pt")
+        torch.save(model_ckpt, f_ckpt)
 
     def freeze_encoders(self, n_encoder="all"):
         if n_encoder in ["ResNet", "all"]:
@@ -293,7 +289,6 @@ class Bert_Classifier(nn.Module):
         )
 
     def load_state_dicts(self, f_model, device="cuda:0"):
-        f_model = f"{f_model}_bert_only.pt"
         if os.path.exists(f_model):
             bert_state_dict = torch.load(f_model, map_location=torch.device(device))
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
@@ -301,7 +296,6 @@ class Bert_Classifier(nn.Module):
             print(f"ERROR: {f_model} checkpoint not existed. No checkpoint loaded.")
 
     def save_state_dicts(self, f_bert):
-        f_bert = f"{f_bert}_bert_only.pt"
         print(f_bert)
 
         torch.save(
@@ -349,7 +343,6 @@ class SiameseResNet(nn.Module):
         self.fc = nn.Linear(512 * 2, n_class)
 
     def save_state_dicts(self, f_resnet):
-        f_resnet = f"{f_resnet}_resnet_only.pt"
         torch.save(
             {
                 "model_state_dict": self.resnet_cnn.state_dict(),
@@ -359,7 +352,6 @@ class SiameseResNet(nn.Module):
         )
 
     def load_state_dicts(self, f_resnet, device="cuda:0"):
-        f_resnet = f"{f_resnet}_resnet_only.pt"
         print("SiameseResNet load_state_dicts ", f_resnet)
 
         if os.path.exists(f_resnet):

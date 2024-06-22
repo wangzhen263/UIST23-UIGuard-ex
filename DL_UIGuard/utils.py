@@ -231,3 +231,13 @@ def one_hot_vector(dataset, total_labels):
         if sum(v) > 1:
             print(s[0])
     return dataset
+
+def get_pt_path(root, model_type):
+    if model_type == "RESNET":
+        return f"{root}_resnet_only.pt"
+    elif model_type == "BERT":
+        return f"{root}_bert_only.pt"
+    elif model_type in ["BERT-RESNET-F", "BERT-RESNET-NF"]:
+        return f"{root}_bert_resnet.pt"
+    else:
+        raise ValueError(f"Error: unknown model: {model_type}")

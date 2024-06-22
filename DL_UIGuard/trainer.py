@@ -39,14 +39,13 @@ OUR_DATASET_PROC_DATA_APP = f"{OUR_DATASET_DETECTION}/proc_dataset_app.pk"
 N_EPOCH = 300
 N_BATCH = 32  # 32
 N_LAYERS = 50
-# DEVICE = "cuda:0"
 DEVICE = "cuda:1"
 MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT  # "/data/scsgpu1/work/jeffwang/dark_pattern"
 
 #USE_CLASS_WEIGHT = True  # False or True
 #USE_NEGATIVE_SAMPLE = True  # False or True
 #USE_OVER_SAMPLE = True  # False or True
-#
+
 date_str = datetime.datetime.now().strftime("%d-%m-%Y")
 
 
@@ -117,8 +116,9 @@ def main(use_class_weight, use_negative_sampling, use_balance_augmentation, dl_m
         model_type = 'Bert_ResNet'
         r_lr = 0.003
         b_lr = 3e-5
-        f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
-        f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
+        f_resnet_encoder = get_pt_path(f"{f_checkpoint}_SiameseResNet_lr{r_lr}", "RESNET")
+        f_bert_encoder = get_pt_path(f"{f_checkpoint}_Bert_Classifier_lr{b_lr}", "BERT")
+        
         bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
     
     if dl_model == "BERT-RESNET-F":
@@ -189,6 +189,7 @@ def main(use_class_weight, use_negative_sampling, use_balance_augmentation, dl_m
     train_dataloader = DataLoader(train_dataset, batch_size=N_BATCH, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=N_BATCH, shuffle=False)
 
+    f_checkpoint = get_pt_path(f_checkpoint, dl_model)
     file_logger.info(f"f_checkpoint: {f_checkpoint}")
 
     test_accs, test_macs, test_mics = (
