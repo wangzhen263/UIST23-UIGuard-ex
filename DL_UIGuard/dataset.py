@@ -25,7 +25,11 @@ from utils import *
 
 class CustomDataset(Dataset):
     def __init__(
-        self, data_set, tokenizer=None, max_seq_length=0, over_sample=False,
+        self,
+        data_set,
+        tokenizer=None,
+        max_seq_length=0,
+        over_sample=False,
     ):
         self.transform_subimg = transforms.Compose(
             [

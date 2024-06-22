@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import pickle as pk
 import datetime
+import click
 
 import torch
 import torch.nn as nn
@@ -42,13 +43,28 @@ N_LAYERS = 50
 DEVICE = "cuda:1"
 MODEL_OUTPUT_PREFIX = OUR_DATASET_ROOT  # "/data/scsgpu1/work/jeffwang/dark_pattern"
 
-USE_CLASS_WEIGHT = True  # False or True
-USE_NEGATIVE_SAMPLE = True  # False or True
-USE_OVER_SAMPLE = True  # False or True
-
+#USE_CLASS_WEIGHT = True  # False or True
+#USE_NEGATIVE_SAMPLE = True  # False or True
+#USE_OVER_SAMPLE = True  # False or True
+#
 date_str = datetime.datetime.now().strftime("%d-%m-%Y")
 
-if __name__ == "__main__":
+
+@click.command()
+@click.option("--use-class-weight", default=True, help="Enable class weight.")
+@click.option("--use-negative-sampling", default=True, help="Enable negative sampling.")
+@click.option(
+    "--use-balance-augmentation", default=True, help="Enable balanced augmentation."
+)
+@click.option(
+    "--dl-model",
+    type=click.Choice(["RESNET", "BERT", "BERT-RESNET-F", "BERT-RESNET-NF"]),
+    default="BERT-RESNET-F",
+    help="Choose a model type.",
+)
+@click.option("--gpu", default=1, type=int, help="Choose a GPU.")
+def main(use_class_weight, use_negative_sampling, use_balance_augmentation, dl_model, gpu):
+    DEVICE = f"cuda:{gpu}"
 
     rico_train_set, rico_test_set, rico_labels, max_seq_length_1 = load_dataset(
         RICO_DATASET_IMG_TEXT, RICO_DATASET_PROC_DATA, RICO_DATASET_ROOT
@@ -65,66 +81,64 @@ if __name__ == "__main__":
     tokenizer = None
     f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt_2"
 
-    if USE_CLASS_WEIGHT:
+    if use_class_weight:
         f_checkpoint = f"{f_checkpoint}_cw"
-    if USE_NEGATIVE_SAMPLE:
+    if use_negative_sampling:
         f_checkpoint = f"{f_checkpoint}_ne"
-    if USE_OVER_SAMPLE:
+    if use_balance_augmentation:
         f_checkpoint = f"{f_checkpoint}_os"
 
-    # Model 1
-    resnet_model = SiameseResNet(
-        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
-    )
-    resnet_model.to(DEVICE)
-    lr = 0.003
-    model_type = "SiameseResNet"
-    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
-    resnet_model.load_state_dicts(f_checkpoint)
-    cls_model = resnet_model
+    if dl_model == "RESNET":
+        resnet_model = SiameseResNet(
+            n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
+        )
+        resnet_model.to(DEVICE)
+        lr = 0.003
+        model_type = "SiameseResNet"
+        f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
+        resnet_model.load_state_dicts(f_checkpoint)
+        cls_model = resnet_model
 
-    # Model 2
-    #    bert_model = Bert_Classifier(n_class=len(tatal_labels))
-    #    tokenizer = bert_model.tokenizer
-    #    bert_model.to(DEVICE)
-    #    lr = 3e-5
-    #    model_type = 'Bert_Classifier'
-    #    f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
-    #    bert_model.load_state_dicts(f_checkpoint)
-    #    cls_model = bert_model
+    if dl_model == "BERT":
+        bert_model = Bert_Classifier(n_class=len(tatal_labels))
+        tokenizer = bert_model.tokenizer
+        bert_model.to(DEVICE)
+        lr = 3e-5
+        model_type = 'Bert_Classifier'
+        f_checkpoint = f"{f_checkpoint}_{model_type}_lr{lr}"
+        bert_model.load_state_dicts(f_checkpoint)
+        cls_model = bert_model
 
-    # Model 3
-    #    bert_resnet_model = Bert_ResNet(
-    #        n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
-    #    )
-    #    tokenizer = bert_resnet_model.tokenizer
-    #    model_type = 'Bert_ResNet'
-    #    r_lr = 0.003
-    #    b_lr = 3e-5
-    #    f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
-    #    f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
-    #    bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
-    #
-    #    #####
-    #    # SETTING 1
-    #    lr = 0.01 #0.005 #0.01
-    #    f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
-    #    try:
-    #        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
-    #    except ValueError:
-    #        pass
-    #    bert_resnet_model.freeze_encoders()
-    #    cls_model = bert_resnet_model
+    if dl_model in ["BERT-RESNET-F", "BERT-RESNET-NF"]:
+        bert_resnet_model = Bert_ResNet(
+            n_channels=3, n_class=len(tatal_labels), n_layers=N_LAYERS
+        )
+        tokenizer = bert_resnet_model.tokenizer
+        model_type = 'Bert_ResNet'
+        r_lr = 0.003
+        b_lr = 3e-5
+        f_resnet_encoder = f"{f_checkpoint}_SiameseResNet_lr{r_lr}"
+        f_bert_encoder = f"{f_checkpoint}_Bert_Classifier_lr{b_lr}"
+        bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
+    
+    if dl_model == "BERT-RESNET-F":
+        lr = 0.01 #0.005 #0.01
+        f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
+        try:
+            bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+        except ValueError:
+            pass
+        bert_resnet_model.freeze_encoders()
+        cls_model = bert_resnet_model
 
-    # SETTING 2
-    #    lr = 3e-5
-    #    f_checkpoint = f"{f_checkpoint}_{model_type}_nfr_lr{lr}"
-    #    try:
-    #        bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
-    #    except ValueError:
-    #        pass
-    #    cls_model = bert_resnet_model
-    #####
+    if dl_model == "BERT-RESNET-NF":
+        lr = 3e-5
+        f_checkpoint = f"{f_checkpoint}_{model_type}_nfr_lr{lr}"
+        try:
+            bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)
+        except ValueError:
+            pass
+        cls_model = bert_resnet_model
 
     file_logger = get_global_logger(
         "DP_trainer",
@@ -168,7 +182,7 @@ if __name__ == "__main__":
     all_test_set = our_test_set
 
     train_dataset = CustomDataset(
-        all_train_set, tokenizer, max_seq_length, over_sample=USE_OVER_SAMPLE
+        all_train_set, tokenizer, max_seq_length, over_sample=use_balance_augmentation
     )
     test_dataset = CustomDataset(all_test_set, tokenizer, max_seq_length)
 
@@ -185,7 +199,7 @@ if __name__ == "__main__":
     train_losses = []
     best_model = None
 
-    if USE_CLASS_WEIGHT:
+    if use_class_weight:
         cw = torch.Tensor(train_dataset.class_weight).to(DEVICE)
         loss_fn = ContrastiveLoss(weight=cw)
     else:
@@ -206,7 +220,7 @@ if __name__ == "__main__":
                 loss = bert_output["loss"]
             elif isinstance(cls_model, Bert_ResNet):
                 output, xs, bert_output = cls_model(images_texts, labels)
-                loss = loss_fn(xs, output, labels, negloss=USE_NEGATIVE_SAMPLE)
+                loss = loss_fn(xs, output, labels, negloss=use_negative_sampling)
                 loss += bert_output["loss"]
             else:
                 output, xs = cls_model(images_texts, labels)
@@ -251,3 +265,7 @@ if __name__ == "__main__":
                 json.dump(err_imgs, f)
             with open(f"{MODEL_OUTPUT_PREFIX}/pred_floats.pk", "wb") as f:
                 pk.dump(pred_floats, f)
+
+
+if __name__ == "__main__":
+    main()

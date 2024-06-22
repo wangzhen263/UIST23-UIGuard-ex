@@ -200,7 +200,9 @@ class Bert_ResNet(nn.Module):
         self.save_encoder = True
 
         self.resnet_cnn = ResNet(
-            num_channels=n_channels, num_layers=n_layers, ResBlock=Bottleneck,
+            num_channels=n_channels,
+            num_layers=n_layers,
+            ResBlock=Bottleneck,
         )
 
         self.fc = nn.Sequential(
@@ -290,7 +292,7 @@ class Bert_Classifier(nn.Module):
             self.bert_name, num_labels=n_class
         )
 
-    def load_state_dicts(self, f_model, device='cuda:0'):
+    def load_state_dicts(self, f_model, device="cuda:0"):
         f_model = f"{f_model}_bert_only.pt"
         if os.path.exists(f_model):
             bert_state_dict = torch.load(f_model, map_location=torch.device(device))
@@ -303,7 +305,8 @@ class Bert_Classifier(nn.Module):
         print(f_bert)
 
         torch.save(
-            {"model_state_dict": self.text_classifier.state_dict()}, f_bert,
+            {"model_state_dict": self.text_classifier.state_dict()},
+            f_bert,
         )
 
     def forward(self, x, y):
@@ -339,7 +342,9 @@ class SiameseResNet(nn.Module):
         super(SiameseResNet, self).__init__()
 
         self.resnet_cnn = ResNet(
-            num_channels=n_channels, num_layers=n_layers, ResBlock=Bottleneck,
+            num_channels=n_channels,
+            num_layers=n_layers,
+            ResBlock=Bottleneck,
         )
         self.fc = nn.Linear(512 * 2, n_class)
 
@@ -353,7 +358,7 @@ class SiameseResNet(nn.Module):
             f_resnet,
         )
 
-    def load_state_dicts(self, f_resnet, device='cuda:0'):
+    def load_state_dicts(self, f_resnet, device="cuda:0"):
         f_resnet = f"{f_resnet}_resnet_only.pt"
         print("SiameseResNet load_state_dicts ", f_resnet)
 
