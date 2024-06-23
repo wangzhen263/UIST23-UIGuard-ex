@@ -290,13 +290,14 @@ class Bert_Classifier(nn.Module):
 
     def load_state_dicts(self, f_model, device="cuda:0"):
         if os.path.exists(f_model):
+            print("Bert_Classifier load_state_dicts: ", f_model)
             bert_state_dict = torch.load(f_model, map_location=torch.device(device))
             self.text_classifier.load_state_dict(bert_state_dict["model_state_dict"])
         else:
             print(f"ERROR: {f_model} checkpoint not existed. No checkpoint loaded.")
 
     def save_state_dicts(self, f_bert):
-        print(f_bert)
+        print("Bert_Classifier save_state_dicts: ", f_bert)
 
         torch.save(
             {"model_state_dict": self.text_classifier.state_dict()},
@@ -343,6 +344,7 @@ class SiameseResNet(nn.Module):
         self.fc = nn.Linear(512 * 2, n_class)
 
     def save_state_dicts(self, f_resnet):
+        print("SiameseResNet save_state_dicts: ", f_resnet)
         torch.save(
             {
                 "model_state_dict": self.resnet_cnn.state_dict(),
@@ -352,9 +354,8 @@ class SiameseResNet(nn.Module):
         )
 
     def load_state_dicts(self, f_resnet, device="cuda:0"):
-        print("SiameseResNet load_state_dicts ", f_resnet)
-
         if os.path.exists(f_resnet):
+            print("SiameseResNet load_state_dicts ", f_resnet)
             resnet_state_dict = torch.load(f_resnet, map_location=torch.device(device))
             self.resnet_cnn.load_state_dict(resnet_state_dict["model_state_dict"])
             self.fc.load_state_dict(resnet_state_dict["fc_state_dict"])
