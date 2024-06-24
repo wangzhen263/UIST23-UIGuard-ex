@@ -74,8 +74,10 @@ def main(use_class_weight, use_negative_sampling, use_balance_augmentation, dl_m
     max_seq_length = max([max_seq_length_1, max_seq_length_2])
     total_labels = our_labels + [label_map[l] for l in rico_labels]
     total_labels = list(set(total_labels))
-    tatal_labels = sorted(total_labels)
-    print(tatal_labels)
+    total_labels = sorted(total_labels)
+    print(total_labels)
+
+    exit(0)
 
     tokenizer = None
     f_checkpoint = f"{MODEL_OUTPUT_PREFIX}/{N_BATCH}_best_ckpt_2"
@@ -122,7 +124,7 @@ def main(use_class_weight, use_negative_sampling, use_balance_augmentation, dl_m
         bert_resnet_model.load_encoders(f_bert_encoder, f_resnet_encoder, DEVICE)
     
     if dl_model == "BERT-RESNET-F":
-        lr = 0.01 #0.005 #0.01
+        lr = 0.0001 #0.0001 0.001 0.005 #0.01
         f_checkpoint = f"{f_checkpoint}_{model_type}_fr_lr{lr}"
         try:
             bert_resnet_model.load_state_dicts(f_checkpoint, DEVICE)

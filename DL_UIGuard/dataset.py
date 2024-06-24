@@ -292,7 +292,7 @@ def load_dataset_pre_class(f_in_img_text, f_out_proc_data, f_root):
                 sub_img = get_sub_image(bnd, f_full_img)
                 all_text = img_all_texts[img_id]
 
-                text = "None" if text == "" else text
+                text = "[This element does not contain texts]" if text == "" else text
                 text = ", ".join([text, all_text])
 
                 if len(text.split(" ")) > max_seq_length:

@@ -177,7 +177,7 @@ def inference(model, data_loader, device, loss_fn):
                         )
 
                 output[i][output[i] <= 0.5] = 0
-                pred_floats.append(output[i])
+                pred_floats.append([idxs[i].item(), output[i], l_gth])
 
     #            pred_label = torch.argmax(output, dim=1).cpu().tolist()
     #            gth_label = labels.cpu().numpy()
